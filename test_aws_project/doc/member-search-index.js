@@ -1,0 +1,1 @@
+memberSearchIndex = [{"p":"com.amazonaws.samples","c":"snowflake_connector","l":"snowflake_connector()"},{"p":"com.amazonaws.samples","c":"snowflake_connector","l":"snowUpload()"}]
