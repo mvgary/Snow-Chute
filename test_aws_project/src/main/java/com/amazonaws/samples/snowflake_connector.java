@@ -30,7 +30,7 @@ public class snowflake_connector {
 		
 	}
 	
-	  public void SnowflakeUpload(String db, String schema, String table, ResultSetMetaData output) throws Exception
+	  public void SnowflakeUploadTable(String db, String schema, String table, ResultSetMetaData output) throws SQLException
 	  {
 	    // make sure db and schema are created
 	    System.out.println("Creating db and schema");
@@ -47,12 +47,24 @@ public class snowflake_connector {
 	    System.out.println("Done creating stage table at: " + this.s3Path);
 	    System.out.println("Copying into table");
 	    // copy data in external stage into snowflake table
+	    try {
 	    this.statement.executeUpdate("copy into "+ table +" from '" + this.s3Path + 
 	    		"' credentials = (aws_key_id='" + this.aws_key_id + "' aws_secret_key='" + this.aws_secret_key + 
-	    		"')file_format = (type = csv field_delimiter = ',');");
+	    		"')file_format = (type = csv field_delimiter = '\t') on_error = 'skip_file';");
+	    }catch(SQLException e) {
+	    	throw e;
+	    	
+	    }
 	    System.out.println("Done copying into table");
 	  }
 	  
+	  
+	  public void SnowflakeUploadDB(String db, String schema, String table,
+			  ResultSetMetaData output, String[] tableNames) throws Exception {
+		  for(int i=0; i<tableNames.length;i++){
+			  this.SnowflakeUploadTable(db, schema, tableNames[i], output);
+		  }
+	  }
 	  
 	   private Connection getConnection() throws SQLException {
 		   
@@ -69,6 +81,7 @@ public class snowflake_connector {
 	    properties.put("user", this.user);     // with your username
 	    properties.put("password", this.password); // with your password
 	    properties.put("account", this.account);  // with your account name
+	    properties.put("ON_ERROR", "SKIP_FILE");
 	    //properties.put("db", db);       // with target database name
 	    //properties.put("schema", schema);   // target schema name
 	    //properties.put("tracing", "on");
@@ -92,11 +105,19 @@ public class snowflake_connector {
 		    	schema = schema + "," + output.getColumnName(i+1) + " " + output.getColumnTypeName(i+1);
 		    }
 		    schema = schema.replaceFirst(",", "");
+		    
 		    // point to correct db and schema
 		    this.statement.executeQuery("use " + db + ";");
 		    this.statement.executeQuery("use schema " + scm + ";");
+		    
+		    // map mysql schema to snowflake
 		    schema = schema.replaceAll("UNSIGNED", "");
+		    schema = schema.replaceAll("BIT", "SMALLINT");
+		    schema = schema.replaceAll("TINYTEXT", "STRING");
+		    schema = schema.replaceAll("LONGTEXT", "STRING");
+		    
 		    // create new table using schema
+		    System.out.println("schema for " + table + ": " + schema);
 		    this.statement.executeUpdate("create table " + table + " (" + schema + 
 		    		");");
 	   }

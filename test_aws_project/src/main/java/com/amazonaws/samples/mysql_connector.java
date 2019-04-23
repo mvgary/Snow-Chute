@@ -7,6 +7,8 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class mysql_connector {
 	private Connection connect = null;
@@ -70,9 +72,9 @@ public class mysql_connector {
     		    while (resultSet.next()) {
     		    	String row = "";
     	        	for(int i=1;i<=num;i++) {
-    	        		row = row + "," + resultSet.getString(i);
+    	        		row = row + "\t" + resultSet.getString(i);
    		        	}
-    	        	row = row.replaceFirst(",", "");
+    	        	row = row.replaceFirst("\t", "");
     	        	row = row + "\n";
     	        	writer.write(row);
    		        }
@@ -106,6 +108,18 @@ public class mysql_connector {
         }
     }
 
+    
+	public List<String> getTableNames(String db) throws SQLException {
+    	List<String> tables = new ArrayList<>();
+    	this.statement.executeQuery("use " + db +";");
+    	ResultSet tableNames = this.statement.executeQuery("show tables;");
+    	while(tableNames.next()) {
+    		System.out.println(tableNames.getString(1));
+        	tables.add(tableNames.getString(1));
+    	}
+    	return tables;
+    }
+    
     
     /*
     public String getFileLocation(String tableName, String URL, String uname, String pword) throws SQLException, ClassNotFoundException {

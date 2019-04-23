@@ -2,6 +2,7 @@ package com.amazonaws.samples;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.List;
 
 import com.amazonaws.samples.mysql_connector;
 
@@ -50,19 +51,40 @@ public class SnowChuteController {
 	    	
 	    	//read from mysql table and write results to temp file
 	        ResultSet rs = this.mysql.readTable(sqltableName);
-	        ResultSetMetaData md = this.mysql.getMetaData();
+	        ResultSetMetaData md = rs.getMetaData();
 	        this.mysql.writeToFile(rs, this.tempFilePath);
 	        
 	        //upload data from local to aws
 	        this.aws.S3Upload(keyName, this.tempFilePath);
 	         
 	        //upload data from S3 into Snowflake
-	        this.snowflake.SnowflakeUpload(db, schema, table, md);
+	        this.snowflake.SnowflakeUploadTable(db, schema, table, md);
 	        
 	        //close out any connectors
 	        this.mysql.close();
 	        this.snowflake.close();
 	        System.out.println("program complete");
+	    }
+	    
+	    
+	    public void importDB(String keyName, String db, String schema) throws Exception {
+	    	
+	    	List<String> tableNames = this.mysql.getTableNames(db);
+	    	for(int i=0;i<tableNames.size();i++) {
+	    		System.out.println("Transferring: " + tableNames.get(i));
+	    		//read from mysql table and write results to temp file
+		        ResultSet rs = this.mysql.readTable(tableNames.get(i));
+		        ResultSetMetaData md = rs.getMetaData();
+		        this.mysql.writeToFile(rs, this.tempFilePath);
+		        
+		        //upload data from local to aws
+		        this.aws.S3Upload(keyName, this.tempFilePath);
+		         
+		        //upload data from S3 into Snowflake
+		        this.snowflake.SnowflakeUploadTable(db, schema, tableNames.get(i), md);
+	    		System.out.println("Done transferring: " + tableNames.get(i));
+	    	}
+	    	
 	    }
 	    
 	    /*

@@ -107,7 +107,7 @@ public class GUI{
 						s3PathString, aws_key_idString, aws_secret_keyString);
                 
                 // import a single table from snowchute
-				snowchute.importTable(sqltableNameString, keyNameString, dbString, tableString, schemaString);
+				snowchute.importDB(keyNameString, dbString, schemaString);
 				
 				// output completed message
 				String message = "table " + tableString + " imported";
