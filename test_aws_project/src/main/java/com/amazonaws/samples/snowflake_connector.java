@@ -5,35 +5,56 @@ import java.util.Properties;
 
 public class snowflake_connector {
 	
-	  public void SnowflakeUpload(String user, String password, String account, String db, String schema, String table, 
-			  String SnowflakeConnectString, String s3Path, String aws_key_id, String aws_secret_key,  ResultSetMetaData output) throws Exception
+	private Connection connection = null;
+	private String user = null;
+	private String password = null;
+	private String account = null;
+	private String SnowflakeConnectString = null;
+	private String s3Path = null;
+	private String aws_key_id = null;
+	private String aws_secret_key = null;
+	private Statement statement = null;
+	
+	public snowflake_connector(String user, String password, String account, 
+			String SnowflakeConnectString, String s3Path, String aws_key_id, String aws_secret_key) throws SQLException {
+	    
+		this.user = user;
+		this.password = password;
+		this.account = account;
+		this.SnowflakeConnectString = SnowflakeConnectString;
+		this.s3Path = s3Path;
+		this.aws_key_id = aws_key_id;
+		this.aws_secret_key = aws_secret_key;
+		this.connection = getConnection();
+		this.statement = connection.createStatement();
+		
+	}
+	
+	  public void SnowflakeUpload(String db, String schema, String table, ResultSetMetaData output) throws Exception
 	  {
-	    // get connection
-	    System.out.println("Create JDBC connection");
-	    Connection connection = getConnection(user, password, account, db, schema, SnowflakeConnectString);
-	    createDatabase(connection, db);
-	    createSchema(connection, schema, db);
-	    createSnowflakeTable(output, connection, table, db, schema);
-	    System.out.println("Done creating JDBC connectionn");
+	    // make sure db and schema are created
+	    System.out.println("Creating db and schema");
+	    this.createDatabase(db);
+	    this.createSchema(schema, db);
+	    this.createSnowflakeTable(output, table, db, schema);
+	    System.out.println("Done creating db and schema");
 	    // create statement
-	    System.out.println("Create JDBC statement");
-	    Statement statement = connection.createStatement();
-	    System.out.println("Done creating JDBC statementn");
+	    System.out.println("Creating external stage at: " + this.s3Path);
 	    // create external stage out of S3 bucket
-	    statement.executeUpdate("create or replace stage external_stage file_format = (type='csv') url = '" + s3Path + "'"
-	    		+ "credentials = (aws_key_id='" + aws_key_id + "' aws_secret_key='"
+	    this.statement.executeUpdate("create or replace stage external_stage file_format = (type='csv') url = '" + this.s3Path + "'"
+	    		+ "credentials = (aws_key_id='" + this.aws_key_id + "' aws_secret_key='"
 	    				+ aws_secret_key +"');");
+	    System.out.println("Done creating stage table at: " + this.s3Path);
+	    System.out.println("Copying into table");
 	    // copy data in external stage into snowflake table
-	    statement.executeUpdate("copy into "+ table +" from '" + s3Path + 
-	    		"' credentials = (aws_key_id='" + aws_key_id + "' aws_secret_key='" + aws_secret_key + 
+	    this.statement.executeUpdate("copy into "+ table +" from '" + this.s3Path + 
+	    		"' credentials = (aws_key_id='" + this.aws_key_id + "' aws_secret_key='" + this.aws_secret_key + 
 	    		"')file_format = (type = csv field_delimiter = ',');");
-
-	    statement.close();
+	    System.out.println("Done copying into table");
 	  }
 	  
 	  
-	   private static Connection getConnection(String user, String password, String account, String db, String schema,
-			   String SnowflakeConnectString) throws SQLException {
+	   private Connection getConnection() throws SQLException {
 		   
 	    try
 	    {
@@ -45,9 +66,9 @@ public class snowflake_connector {
 	    }
 	    // build connection properties
 	    Properties properties = new Properties();
-	    properties.put("user", user);     // with your username
-	    properties.put("password", password); // with your password
-	    properties.put("account", account);  // with your account name
+	    properties.put("user", this.user);     // with your username
+	    properties.put("password", this.password); // with your password
+	    properties.put("account", this.account);  // with your account name
 	    //properties.put("db", db);       // with target database name
 	    //properties.put("schema", schema);   // target schema name
 	    //properties.put("tracing", "on");
@@ -57,14 +78,13 @@ public class snowflake_connector {
 	    // use the default connection string if it is not set in environment
 	    if(connectStr == null)
 	    {
-	     connectStr = SnowflakeConnectString; // replace accountName with your account name
+	     connectStr = this.SnowflakeConnectString; // replace accountName with your account name
 	    }
 	    return DriverManager.getConnection(connectStr, properties);
 	  }
 	   
-	   private static void createSnowflakeTable(ResultSetMetaData output, Connection connection, String table,
+	   public void createSnowflakeTable(ResultSetMetaData output, String table,
 			   String db, String scm) throws SQLException {
-		    Statement statement = connection.createStatement();
 		    
 		    // assemble columns and column types as string
 		    String schema= "";
@@ -72,26 +92,30 @@ public class snowflake_connector {
 		    	schema = schema + "," + output.getColumnName(i+1) + " " + output.getColumnTypeName(i+1);
 		    }
 		    schema = schema.replaceFirst(",", "");
-		    // set up database
-		    statement.executeQuery("use " + db + ";");
-		    statement.executeQuery("use schema " + scm + ";");
-		    System.out.println(table);
+		    // point to correct db and schema
+		    this.statement.executeQuery("use " + db + ";");
+		    this.statement.executeQuery("use schema " + scm + ";");
 		    schema = schema.replaceAll("UNSIGNED", "");
-		    System.out.println(schema);
 		    // create new table using schema
-		    statement.executeUpdate("create table " + table + " (" + schema + 
+		    this.statement.executeUpdate("create table " + table + " (" + schema + 
 		    		");");
 	   }
 	   
-	   public static void createDatabase(Connection connection, String db) throws SQLException {
-		   Statement statement = connection.createStatement();
-		   statement.executeQuery("create database if not exists "+ db +";");
+	   public void createDatabase(String db) throws SQLException {
+		   this.statement.executeQuery("create database if not exists "+ db +";");
 	   }
 	   
-	   public static void createSchema(Connection connection, String schema, String db) throws SQLException {
-		   Statement statement = connection.createStatement();
-		    statement.executeQuery("use " + db + ";");
-		   statement.executeQuery("create schema if not exists "+ schema +";");
+	   public void createSchema(String schema, String db) throws SQLException {
+		   this.statement.executeQuery("use " + db + ";");
+		   this.statement.executeQuery("create schema if not exists "+ schema +";");
 	   }
 	
+	   public void close() throws SQLException {
+		   if(this.connection != null) {
+			   this.connection.close();
+		   }
+		   if(this.statement != null) {
+			   this.statement.close();
+		   }
+	   }
 }

@@ -11,19 +11,28 @@ import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
 
 public class aws_connector {
+	private AmazonS3 s3Client = null;
+	private TransferManager tm = null;
+	private String clientRegion = null;
+	private String bucketName = null;
 	
-	    public void S3Upload(String clientRegion, String bucketName, String keyName, String filePath) throws Exception {
+	public aws_connector(String region, String bucket) {
+		this.clientRegion = region;
+		this.bucketName = bucket;
+		//build the s3 client and the transfer manager
+        this.s3Client = AmazonS3ClientBuilder.standard()
+                .withRegion(clientRegion)
+                .withCredentials(new ProfileCredentialsProvider())
+                .build();
+        this.tm = TransferManagerBuilder.standard()
+                .withS3Client(s3Client)
+                .build();
+        
+	}
+	
+	    public void S3Upload(String keyName, String filePath) throws Exception {
 	    	
 	        try {
-	        	//build the s3 client and the transfer manager
-	            AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
-	                    .withRegion(clientRegion)
-	                    .withCredentials(new ProfileCredentialsProvider())
-	                    .build();
-	            TransferManager tm = TransferManagerBuilder.standard()
-	                    .withS3Client(s3Client)
-	                    .build();
-	            
 	            // TransferManager processes all transfers asynchronously,
 	            // so this call returns immediately.
 	            Upload upload = tm.upload(bucketName, keyName, new File(filePath));

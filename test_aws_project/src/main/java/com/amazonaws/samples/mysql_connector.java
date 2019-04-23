@@ -1,7 +1,6 @@
 package com.amazonaws.samples;
 
 import java.io.BufferedOutputStream;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
@@ -9,33 +8,43 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.sql.*;
 
-public class jdbc_connector {
+public class mysql_connector {
 	private Connection connect = null;
     private Statement statement = null;
-    //private PreparedStatement preparedStatement = null;
     private ResultSet resultSet = null;
-
-    public ResultSetMetaData readDataBase(String tableName, String URL, String uname, String pword, String localFilePath) throws Exception, SQLException{
-    	String username = "user=" + uname;
-    	String password = "password=" + pword;
-    	String credentials = username; 
-    			//+ "&" + password;
+    private ResultSetMetaData metaData = null;
+    private String username = null;
+    private String password = null;
+    private String url = null;
+    private String tempFilePath = null;
+   
+    
+    public mysql_connector(String URL, String uname, String pword, String filePath) {
+    	this.username = uname;
+    	this.password = pword;
+    	this.url = URL;
+    	this.tempFilePath = filePath;
+    	String credentials = "user=" + this.username + "&" + "password=" + this.password; 
     	String connectString = URL + "?" + credentials;
-    	ResultSetMetaData metadata = null;
-        String filePath = "C:\\Users\\micha\\Downloads";
+    	
     	try {
-            // This will load the MySQL driver, each DB has its own driver
-            Class.forName("com.mysql.jdbc.Driver");
-            // Setup the connection with the DB
-            connect = DriverManager.getConnection(connectString);
-            // create and execute statement
-            statement = connect.createStatement();
-            // export data from mysql into local file
-            //statement.executeQuery("select * into outfile '" + filePath + "' from " + tableName);
-            // retrieve metadata
-            resultSet = statement.executeQuery("select * from " + tableName);
-            writeToFile(resultSet);
-            metadata = resultSet.getMetaData();
+			Class.forName("com.mysql.jdbc.Driver");
+			// Setup the connection with the DB
+			this.connect = DriverManager.getConnection(connectString);
+			// 	create and execute statement
+			this.statement = this.connect.createStatement();
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+        
+    }
+
+    public ResultSet readTable(String tableName) throws Exception, SQLException{
+    	
+    	try {
+    		
+            this.resultSet = this.statement.executeQuery("select * from " + tableName);
+            this.metaData = this.resultSet.getMetaData();
         } catch (SQLException e) {
         	switch (e.getErrorCode())
         	   {
@@ -48,14 +57,38 @@ public class jdbc_connector {
         	    	  throw e;
         	   }        
         	}finally {
-            close();
-        }
-        return metadata;
+        	}
+    	return this.resultSet;
+
     }
-
-
-    // You need to close the resultSet
-    private void close() {
+    
+    
+    public void writeToFile(ResultSet resultSet, String tempFilePath) throws SQLException, UnsupportedEncodingException, FileNotFoundException {
+    	int num = resultSet.getMetaData().getColumnCount();
+    	System.out.println("writing " + num + " columns to file");
+    	PrintWriter writer = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(new FileOutputStream(tempFilePath)), "UTF-8"));
+    		    while (resultSet.next()) {
+    		    	String row = "";
+    	        	for(int i=1;i<=num;i++) {
+    	        		row = row + "," + resultSet.getString(i);
+   		        	}
+    	        	row = row.replaceFirst(",", "");
+    	        	row = row + "\n";
+    	        	writer.write(row);
+   		        }
+    		   writer.close(); 
+    }
+    
+    public ResultSet getResultSet() {
+		return resultSet;
+    }
+    
+    public ResultSetMetaData getMetaData() {
+		return metaData;
+    }
+    
+    
+    public void close() throws Exception {
         try {
             if (resultSet != null) {
                 resultSet.close();
@@ -67,12 +100,14 @@ public class jdbc_connector {
 
             if (connect != null) {
                 connect.close();
-            }
+            }   
         } catch (Exception e) {
-
+        	throw (e);
         }
     }
+
     
+    /*
     public String getFileLocation(String tableName, String URL, String uname, String pword) throws SQLException, ClassNotFoundException {
     	String username = "user=" + uname;
     	String password = "password=" + pword;
@@ -93,24 +128,5 @@ public class jdbc_connector {
         String file = fileLocation.replace("\\", "/") + "outfile.csv";
     	return file;
     }
-    
-    public void writeToFile(ResultSet resultSet) throws SQLException, UnsupportedEncodingException, FileNotFoundException {
-    	File file = new File("C:\\Users\\micha\\Downloads");
-    	int num = resultSet.getMetaData().getColumnCount();
-    	System.out.println("writing " + num + " columns to file");
-    	PrintWriter writer = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(new FileOutputStream("C:\\Users\\micha\\Downloads\\outfile.csv")), "UTF-8"));
-    		    while (resultSet.next()) {
-    		    	String row = "";
-    	        	for(int i=1;i<=num;i++) {
-    	        		row = row + "," + resultSet.getString(i);
-   		        	}
-    	        	row = row.replaceFirst(",", "");
-    	        	row = row + "\n";
-	        		System.out.println(row);
-    	        	writer.write(row);
-   		        }
-    		   writer.close(); 
-    		
-    }
-
+    */
 }

@@ -6,9 +6,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.JButton;
 import javax.swing.JFrame;
-import javax.swing.JTextArea;
 import java.awt.FlowLayout;
-import javax.swing.JFrame;
 import javax.swing.JTextField;
 import javax.swing.*; 
 import de.javasoft.plaf.synthetica.SyntheticaClassyLookAndFeel;
@@ -19,13 +17,14 @@ public class GUI{
 
   public static void main(String[] args) throws Exception {
 
-	
-	  
-	  JFrame f = new JFrame("Text Field Examples");
+	  // Set up gui look and feel, size, and location
+	  JFrame f = new JFrame("SnowChute");
 		UIManager.setLookAndFeel(new SyntheticaClassyLookAndFeel());
 	  f.setPreferredSize(new Dimension(300, 340));
 	    f.setLocation(550,200);
 	  f.getContentPane().setLayout(new FlowLayout());
+	  
+	  // initialize text fields
 	sqlURL = new JTextField("jdbc:mysql://ensembldb.ensembl.org:3306/zonotrichia_albicollis_rnaseq_96_101",10);
 	sqltableName = new JTextField("analysis",10);
 	sqlusername = new JTextField("anonymous",10);
@@ -43,6 +42,8 @@ public class GUI{
 	s3Path = new JTextField("s3://mvgary-test-bucket-123494/test_key1",10);
 	aws_key_id = new JTextField("AKIAIBXWU6SVPE6TRESQ",10);
 	aws_secret_key = new JTextField("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",10);
+	
+	// add text fields to gui
     f.getContentPane().add(BorderLayout.CENTER, sqlURL);
 	f.getContentPane().add(BorderLayout.CENTER, sqltableName);
 	f.getContentPane().add(BorderLayout.CENTER, sqlusername);
@@ -61,44 +62,25 @@ public class GUI{
 	f.getContentPane().add(BorderLayout.CENTER, aws_key_id);
 	f.getContentPane().add(BorderLayout.WEST, aws_secret_key);
 	
+	// add button to gui
     final JButton button = new JButton("Begin Import");
     button.setPreferredSize(new Dimension(123,28));
     f.getContentPane().add(BorderLayout.SOUTH, button);
     
+    // add message box to gui
 	message_box = new JTextField(22);
     f.getContentPane().add(BorderLayout.CENTER, message_box);
 
     f.pack();
 	f.setVisible(true);
-	//UIManager.setLookAndFeel(new SyntheticaClassyLookAndFeel());
     button.addActionListener(new ActionListener() {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-        	/*
-        	//initialize mysql jdbc connector variables
-          	String sqlURL = "jdbc:mysql://localhost:3306/sales";
-          	String sqltableName = "product";
-          	String sqlusername = "root";
-          	String sqlpassword = "bigmike";
-          	//initialize aws jdbc connector variables
-          	String clientRegion = "us-west-1";
-            String bucketName = "mvgary-test-bucket-123494";
-            String keyName = "test_key1";
-            //initialize Snowflake jdbc connector variable
-            String user = "mvgary094";
-            String password = "Bigmike094";
-            String account = "ot24432";
-            String db = "salesDB";
-            String table = "product4";
-            String schema = "salesSchema";
-            String SnowflakeConnectString = "jdbc:snowflake://ot24432.snowflakecomputing.com/";
-            String s3Path = "s3://mvgary-test-bucket-123494/test_key1";
-            String aws_key_id = "AKIAIBXWU6SVPE6TRESQ";
-            String aws_secret_key = "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";
-        	*/
-            test_class ts = new test_class();
+        	
             try {
+            	
+            	// get input text from text fields
                 String sqlURLString = sqlURL.getText();
                 String sqltableNameString = sqltableName.getText();
                 String sqlusernameString = sqlusername.getText();
@@ -116,14 +98,21 @@ public class GUI{
                 String s3PathString = s3Path.getText();
                 String aws_key_idString = aws_key_id.getText();
                 String aws_secret_keyString = aws_secret_key.getText();
-				ts.importTable(sqlURLString, sqltableNameString, sqlusernameString, sqlpasswordString,
-						clientRegionString, bucketNameString, keyNameString, userString, passwordString,
-						accountString, dbString, tableString, schemaString, SnowflakeConnectStringString,
+                
+                String tempFilePath = "C:\\Users\\micha\\Downloads\\outfile.csv";
+                
+                // initialize snowchute controller
+                SnowChuteController snowchute = new SnowChuteController(sqlURLString,  sqlusernameString, sqlpasswordString, 
+                		tempFilePath, clientRegionString, bucketNameString, userString, passwordString, accountString, SnowflakeConnectStringString,
 						s3PathString, aws_key_idString, aws_secret_keyString);
+                
+                // import a single table from snowchute
+				snowchute.importTable(sqltableNameString, keyNameString, dbString, tableString, schemaString);
+				
+				// output completed message
 				String message = "table " + tableString + " imported";
 				message_box.setText(message);
 			} catch (Exception e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 
