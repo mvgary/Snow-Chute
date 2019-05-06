@@ -26,18 +26,18 @@ public class GUI{
 	  
 	  // initialize text fields
 	sqlURL = new JTextField("jdbc:mysql://ensembldb.ensembl.org:3306/zonotrichia_albicollis_rnaseq_96_101",10);
-	sqltableName = new JTextField("analysis",10);
+	sqltableName = new JTextField("table",10);
 	sqlusername = new JTextField("anonymous",10);
-	sqlpassword = new JTextField("bigmike",10);
+	sqlpassword = new JTextField("password",10);
 	clientRegion = new JTextField("us-west-1",10);
 	bucketName = new JTextField("mvgary-test-bucket-123494",10);
 	keyName = new JTextField("test_key1",10);
 	user = new JTextField("mvgary094",10);
 	password = new JTextField("Bigmike094",10);
 	account = new JTextField("ot24432",10);
-	db = new JTextField("salesDB",10);
-	table = new JTextField("analysis",10);
-	schema = new JTextField("salesSchema",10);
+	db = new JTextField("zonotrichia_albicollis_rnaseq_96_101",10);
+	table = new JTextField("table",10);
+	schema = new JTextField("schema1",10);
 	SnowflakeConnectString = new JTextField("jdbc:snowflake://ot24432.snowflakecomputing.com/",10);
 	s3Path = new JTextField("s3://mvgary-test-bucket-123494/test_key1",10);
 	aws_key_id = new JTextField("AKIAIBXWU6SVPE6TRESQ",10);
@@ -110,7 +110,7 @@ public class GUI{
 				snowchute.importDB(keyNameString, dbString, schemaString);
 				
 				// output completed message
-				String message = "table " + tableString + " imported";
+				String message = "Import Complete!";
 				message_box.setText(message);
 			} catch (Exception e1) {
 				e1.printStackTrace();

@@ -9,9 +9,10 @@ import java.io.UnsupportedEncodingException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 public class mysql_connector {
-	private Connection connect = null;
+	protected Connection connect = null;
     private Statement statement = null;
     private ResultSet resultSet = null;
     private ResultSetMetaData metaData = null;
@@ -19,7 +20,9 @@ public class mysql_connector {
     private String password = null;
     private String url = null;
     private String tempFilePath = null;
-   
+	static Semaphore semaphore = new Semaphore(4);
+	
+
     
     public mysql_connector(String URL, String uname, String pword, String filePath) {
     	this.username = uname;
@@ -44,9 +47,15 @@ public class mysql_connector {
     public ResultSet readTable(String tableName) throws Exception, SQLException{
     	
     	try {
-    		
-            this.resultSet = this.statement.executeQuery("select * from " + tableName);
+    		System.out.println("executing query");
+            this.resultSet = this.statement.executeQuery("select * from " + tableName + " limit 100;");
+            if(this.resultSet.next()) {
+            	System.out.println("Column 1, Row 1: " + this.resultSet.getString(1));
+            }else {
+            	System.out.println("Column 1, Row 1: NULL");
+            }
             this.metaData = this.resultSet.getMetaData();
+            
         } catch (SQLException e) {
         	switch (e.getErrorCode())
         	   {
@@ -66,9 +75,11 @@ public class mysql_connector {
     
     
     public void writeToFile(ResultSet resultSet, String tempFilePath) throws SQLException, UnsupportedEncodingException, FileNotFoundException {
+    	
     	int num = resultSet.getMetaData().getColumnCount();
     	System.out.println("writing " + num + " columns to file");
     	PrintWriter writer = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(new FileOutputStream(tempFilePath)), "UTF-8"));
+    	
     		    while (resultSet.next()) {
     		    	String row = "";
     	        	for(int i=1;i<=num;i++) {
@@ -88,8 +99,54 @@ public class mysql_connector {
     public ResultSetMetaData getMetaData() {
 		return metaData;
     }
+
+    
+	public List<String> getTableNames(String db) throws SQLException {
+    	List<String> tables = new ArrayList<>();
+    	this.statement.executeQuery("use " + db +";");
+    	ResultSet tableNames = this.statement.executeQuery("show tables;");
+    	while(tableNames.next()) {
+    		System.out.println(tableNames.getString(1));
+        	tables.add(tableNames.getString(1));
+    	}
+    	return tables;
+    }
+	
+	public List<String> getTableNames(String db, String schema) throws SQLException {
+    	List<String> tables = new ArrayList<>();
+    	this.statement.executeQuery("use " + db +";");
+    	this.statement.executeQuery("use schema " + schema + ";");
+    	ResultSet tableNames = this.statement.executeQuery("show tables;");
+    	while(tableNames.next()) {
+    		System.out.println(tableNames.getString(1));
+        	tables.add(tableNames.getString(1));
+    	}
+    	return tables;
+    }
     
     
+	public List<String> getSchemaNames(String db) throws SQLException {
+    	List<String> schemas = new ArrayList<>();
+    	this.statement.executeQuery("use " + db +";");
+    	ResultSet schemaNames = this.statement.executeQuery("show schemas;");
+    	while(schemaNames.next()) {
+    		System.out.println(schemaNames.getString(1));
+        	schemas.add(schemaNames.getString(1));
+    	}
+    	return schemas;
+    }
+	
+	
+
+	public void useDB(String db) throws SQLException {
+		this.statement.executeQuery("use " + db + ";");
+	}
+
+	
+	public void useSchema(String schema) throws SQLException {
+		this.statement.executeQuery("use schema " + schema + ";");
+	}
+
     public void close() throws Exception {
         try {
             if (resultSet != null) {
@@ -107,40 +164,5 @@ public class mysql_connector {
         	throw (e);
         }
     }
-
-    
-	public List<String> getTableNames(String db) throws SQLException {
-    	List<String> tables = new ArrayList<>();
-    	this.statement.executeQuery("use " + db +";");
-    	ResultSet tableNames = this.statement.executeQuery("show tables;");
-    	while(tableNames.next()) {
-    		System.out.println(tableNames.getString(1));
-        	tables.add(tableNames.getString(1));
-    	}
-    	return tables;
-    }
-    
-    
-    /*
-    public String getFileLocation(String tableName, String URL, String uname, String pword) throws SQLException, ClassNotFoundException {
-    	String username = "user=" + uname;
-    	String password = "password=" + pword;
-    	String credentials = username + "&" + password;
-    	String connectString = URL + "?" + credentials;
-    	
-    	// This will load the MySQL driver, each DB has its own driver
-        Class.forName("com.mysql.jdbc.Driver");
-        // Setup the connection with the DB
-        connect = DriverManager.getConnection(connectString);
-        // create and execute statement
-        statement = connect.createStatement();
-        // find safe location to place file
-        resultSet = statement.executeQuery("SELECT @@secure_file_priv");
-        resultSet.next();
-        // create file path string
-        String fileLocation = resultSet.getString(1);
-        String file = fileLocation.replace("\\", "/") + "outfile.csv";
-    	return file;
-    }
-    */
+	
 }

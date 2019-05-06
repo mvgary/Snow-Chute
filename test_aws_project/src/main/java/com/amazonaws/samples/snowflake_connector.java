@@ -30,13 +30,13 @@ public class snowflake_connector {
 		
 	}
 	
-	  public void SnowflakeUploadTable(String db, String schema, String table, ResultSetMetaData output) throws SQLException
+	  public void SnowflakeUploadTable(String db,String table, ResultSetMetaData output) throws SQLException
 	  {
 	    // make sure db and schema are created
 	    System.out.println("Creating db and schema");
 	    this.createDatabase(db);
-	    this.createSchema(schema, db);
-	    this.createSnowflakeTable(output, table, db, schema);
+	    //this.createSchema(schema, db);
+	    this.createSnowflakeTable(output, table, db);
 	    System.out.println("Done creating db and schema");
 	    // create statement
 	    System.out.println("Creating external stage at: " + this.s3Path);
@@ -50,7 +50,8 @@ public class snowflake_connector {
 	    try {
 	    this.statement.executeUpdate("copy into "+ table +" from '" + this.s3Path + 
 	    		"' credentials = (aws_key_id='" + this.aws_key_id + "' aws_secret_key='" + this.aws_secret_key + 
-	    		"')file_format = (type = csv field_delimiter = '\t') on_error = 'skip_file';");
+	    		"')file_format = (type = csv field_delimiter = '\t') on_error = 'continue' ;");
+	    //
 	    }catch(SQLException e) {
 	    	throw e;
 	    	
@@ -59,10 +60,10 @@ public class snowflake_connector {
 	  }
 	  
 	  
-	  public void SnowflakeUploadDB(String db, String schema, String table,
+	  public void SnowflakeUploadDB(String db, String table,
 			  ResultSetMetaData output, String[] tableNames) throws Exception {
 		  for(int i=0; i<tableNames.length;i++){
-			  this.SnowflakeUploadTable(db, schema, tableNames[i], output);
+			  this.SnowflakeUploadTable(db, tableNames[i], output);
 		  }
 	  }
 	  
@@ -81,7 +82,7 @@ public class snowflake_connector {
 	    properties.put("user", this.user);     // with your username
 	    properties.put("password", this.password); // with your password
 	    properties.put("account", this.account);  // with your account name
-	    properties.put("ON_ERROR", "SKIP_FILE");
+	    //properties.put("ON_ERROR", "SKIP_FILE");
 	    //properties.put("db", db);       // with target database name
 	    //properties.put("schema", schema);   // target schema name
 	    //properties.put("tracing", "on");
@@ -97,7 +98,7 @@ public class snowflake_connector {
 	  }
 	   
 	   public void createSnowflakeTable(ResultSetMetaData output, String table,
-			   String db, String scm) throws SQLException {
+			   String db) throws SQLException {
 		    
 		    // assemble columns and column types as string
 		    String schema= "";
@@ -108,13 +109,15 @@ public class snowflake_connector {
 		    
 		    // point to correct db and schema
 		    this.statement.executeQuery("use " + db + ";");
-		    this.statement.executeQuery("use schema " + scm + ";");
+		    //this.statement.executeQuery("use schema " + scm + ";");
 		    
 		    // map mysql schema to snowflake
 		    schema = schema.replaceAll("UNSIGNED", "");
 		    schema = schema.replaceAll("BIT", "SMALLINT");
 		    schema = schema.replaceAll("TINYTEXT", "STRING");
 		    schema = schema.replaceAll("LONGTEXT", "STRING");
+		    schema = schema.replaceAll("MEDIUMTEXT", "STRING");
+		    schema = schema.replaceAll(" CHAR", " STRING");
 		    
 		    // create new table using schema
 		    System.out.println("schema for " + table + ": " + schema);
@@ -128,7 +131,7 @@ public class snowflake_connector {
 	   
 	   public void createSchema(String schema, String db) throws SQLException {
 		   this.statement.executeQuery("use " + db + ";");
-		   this.statement.executeQuery("create schema if not exists "+ schema +";");
+		   this.statement.executeQuery("create schema if not exists " + schema + ";");
 	   }
 	
 	   public void close() throws SQLException {

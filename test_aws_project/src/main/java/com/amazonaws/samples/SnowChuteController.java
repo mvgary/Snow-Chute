@@ -58,33 +58,38 @@ public class SnowChuteController {
 	        this.aws.S3Upload(keyName, this.tempFilePath);
 	         
 	        //upload data from S3 into Snowflake
-	        this.snowflake.SnowflakeUploadTable(db, schema, table, md);
+	        this.snowflake.SnowflakeUploadTable(db, table, md);
 	        
 	        //close out any connectors
-	        this.mysql.close();
-	        this.snowflake.close();
+	        //this.mysql.close();
+	        //this.snowflake.close();
 	        System.out.println("program complete");
 	    }
 	    
 	    
 	    public void importDB(String keyName, String db, String schema) throws Exception {
 	    	
+	    	this.mysql.useDB(db);
 	    	List<String> tableNames = this.mysql.getTableNames(db);
-	    	for(int i=0;i<tableNames.size();i++) {
-	    		System.out.println("Transferring: " + tableNames.get(i));
-	    		//read from mysql table and write results to temp file
-		        ResultSet rs = this.mysql.readTable(tableNames.get(i));
-		        ResultSetMetaData md = rs.getMetaData();
-		        this.mysql.writeToFile(rs, this.tempFilePath);
-		        
-		        //upload data from local to aws
-		        this.aws.S3Upload(keyName, this.tempFilePath);
-		         
-		        //upload data from S3 into Snowflake
-		        this.snowflake.SnowflakeUploadTable(db, schema, tableNames.get(i), md);
-	    		System.out.println("Done transferring: " + tableNames.get(i));
-	    	}
 	    	
+	    		tableNames = this.mysql.getTableNames(db);
+	    		for(int i=0;i<tableNames.size();i++) {
+	    			System.out.println("Transferring: " + tableNames.get(i));
+	    			//read from mysql table and write results to temp file
+	    			ResultSet rs = this.mysql.readTable(tableNames.get(i));
+	    			ResultSetMetaData md = rs.getMetaData();
+	    			this.mysql.writeToFile(rs, this.tempFilePath);
+	    			
+	    			//upload data from local to aws
+	    			this.aws.S3Upload(keyName, this.tempFilePath);
+	    			
+	    			//upload data from S3 into Snowflake
+	    			this.snowflake.SnowflakeUploadTable(db, tableNames.get(i), md);
+	    			System.out.println("Done transferring: " + tableNames.get(i));
+	    		}
+	    	
+	    	this.mysql.close();
+	    	this.snowflake.close();
 	    }
 	    
 	    /*
